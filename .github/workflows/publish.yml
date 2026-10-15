@@ -1,0 +1,56 @@
+name: Publish LP from microCMS
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '*/5 * * * *'
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Check connection settings
+        id: config
+        env:
+          CMS_DOMAIN: ${{ secrets.MICROCMS_SERVICE_DOMAIN }}
+          CMS_KEY: ${{ secrets.MICROCMS_API_KEY }}
+        run: |
+          if [ -n "$CMS_DOMAIN" ] && [ -n "$CMS_KEY" ]; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'microCMS settings are missing. Current published LP is unchanged.'
+          fi
+      - uses: actions/checkout@v4
+        if: steps.config.outputs.ready == 'true'
+      - uses: actions/setup-node@v4
+        if: steps.config.outputs.ready == 'true'
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+        if: steps.config.outputs.ready == 'true'
+      - run: npm run build
+        if: steps.config.outputs.ready == 'true'
+        env:
+          MICROCMS_SERVICE_DOMAIN: ${{ secrets.MICROCMS_SERVICE_DOMAIN }}
+          MICROCMS_API_KEY: ${{ secrets.MICROCMS_API_KEY }}
+          REQUIRE_CMS: 'true'
+      - uses: actions/configure-pages@v5
+        if: steps.config.outputs.ready == 'true'
+      - uses: actions/upload-pages-artifact@v3
+        if: steps.config.outputs.ready == 'true'
+        with:
+          path: dist
+      - uses: actions/deploy-pages@v4
+        if: steps.config.outputs.ready == 'true'
+        id: deployment

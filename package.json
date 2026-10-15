@@ -1,1 +1,15 @@
-{"name":"kawamoto-personal-lp","version":"1.0.0","private":true,"type":"module","scripts":{"dev":"vite --host 0.0.0.0","build":"vite build","preview":"vite preview --host 0.0.0.0"},"devDependencies":{"vite":"^6.4.0"}}
+{
+  "name": "kawamoto-personal-lp",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "node scripts/fetch-content.mjs && vite build --base=./",
+    "preview": "vite preview --host 0.0.0.0",
+    "sync-content": "node scripts/fetch-content.mjs"
+  },
+  "devDependencies": {
+    "vite": "^6.4.0"
+  }
+}
