@@ -7,7 +7,7 @@ if (!domain || !key) {
   process.exit(0);
 }
 if (!/^[a-z0-9][a-z0-9-]*$/.test(domain)) throw new Error('Invalid microCMS service domain');
-const response = await fetch(`https://${domain}.microcms.io/api/v1/lp`, {
+const response = await fetch(`https://${domain}.microcms.io/api/v1/lplp`, {
   headers: { 'X-MICROCMS-API-KEY': key }, signal: AbortSignal.timeout(30000),
 });
 if (!response.ok) throw new Error(`microCMS request failed (${response.status}); existing published site is unchanged.`);
