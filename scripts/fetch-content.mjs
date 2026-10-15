@@ -1,4 +1,4 @@
-import { writeFile } from 'node:fs/promises';
+import { writeFile, appendFile } from 'node:fs/promises';
 const domain = process.env.MICROCMS_SERVICE_DOMAIN;
 const key = process.env.MICROCMS_API_KEY;
 if (!domain || !key) {
@@ -13,6 +13,14 @@ const response = await fetch(`https://${domain}.microcms.io/api/v1/lplp`, {
 if (!response.ok) throw new Error(`microCMS request failed (${response.status}); existing published site is unchanged.`);
 const data = await response.json();
 const textFields = ['heroTitle','heroDescription','conceptText','trainerName','trainerProfile','trialTitle','trialDescription','trialPrice','planTitle','planDescription','planPrice','contactText','bookingUrl'];
+const fieldIds = Object.keys(data).filter(name => /^[A-Za-z0-9_-]+$/.test(name));
+console.log('microCMS field IDs:', fieldIds.join(', '));
+const hasTitle = typeof data.heroTitle === 'string' && data.heroTitle.trim().length > 0;
+console.log('heroTitle received:', hasTitle ? 'yes' : 'no (original heading will be used)');
+if (process.env.GITHUB_STEP_SUMMARY) {
+  await appendFile(process.env.GITHUB_STEP_SUMMARY,
+    `## microCMS connection check\n\n- Field IDs: ${fieldIds.join(', ')}\n- heroTitle: ${hasTitle ? 'received' : 'MISSING — check the field ID and publish status in microCMS'}\n`);
+}
 const result = {};
 for (const field of textFields) {
   if (typeof data[field] === 'string') result[field] = data[field];
@@ -32,5 +40,6 @@ if (data.faqs !== undefined) {
   });
 }
 if (result.bookingUrl && new URL(result.bookingUrl).protocol !== 'https:') throw new Error('Reservation URL must use HTTPS');
+if (!Object.keys(result).length) throw new Error('No supported LP fields were received. Check microCMS field IDs (main heading must be heroTitle). Existing published site is unchanged.');
 await writeFile(new URL('../content/lp.json', import.meta.url), JSON.stringify(result, null, 2) + '\n');
 console.log('Published microCMS content fetched successfully.');
